@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { TouchableOpacity, StyleSheet, View, Text, FlatList }
+import { TouchableOpacity, StyleSheet, View, Text, FlatList, TextInput }
   from 'react-native';
 import { Icon } from 'react-native-elements';
 import realm from '../../store/realm';
@@ -13,6 +13,7 @@ const NoteListScreen = (props) => {
   //   day: "numeric",
   // };
   const [data, setData] = useState([])
+  const [searchText, setSearchText] = useState('');
 
 
   const dateFormat = (date) => {
@@ -28,12 +29,25 @@ const NoteListScreen = (props) => {
     return `${months[monthOnly]} ${dateOnly}, ${yearOnly}`
   }
 
+  const searchData = (query) => {
+    const dataFromDatabase = realm.objects('Note').sorted('date', true)
+
+    const searchedData = dataFromDatabase.filter((item) => {
+      const itemData = item.note.toLowerCase()
+      const queryData = query.toLowerCase()
+      return itemData.indexOf(queryData) > -1;
+    })
+    setData(searchedData)
+    setSearchText(query)
+  }
+
 
   useEffect(() => {
     const noteListPage = navigation.addListener('focus', () => {
       const note = realm.objects('Note')
       const noteByDate = note.sorted('date', true)
       setData(noteByDate)
+      setSearchText('');
     })
     return noteListPage;
   }, [])
@@ -47,9 +61,27 @@ const NoteListScreen = (props) => {
       </View>
       <FlatList
         contentContainerStyle={styles.flatListContainer}
+        ListEmptyComponent={
+          <View style={styles.emptyList}>
+            <Text style={{ color: 'grey' }}>Tidak ditemukan</Text>
+          </View>
+        }
         data={data}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps={'handled'}
+        ListHeaderComponent={
+          <View style={styles.searchBox}>
+            <Icon name='search' type='font-awesome' size={18} style={styles.searchIcon} color='grey' />
+            <TextInput
+              placeholder='Search here'
+              style={styles.searchInput}
+              placeholderTextColor='grey'
+              onChangeText={(text) => searchData(text)}
+              value={searchText}
+            />
+          </View>
+        }
         renderItem={({ item }) => {
           return (
             <View style={styles.mainDataContainer}>
@@ -136,6 +168,28 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 12,
     color: 'grey'
+  },
+  searchBox: {
+    flexDirection: 'row',
+    borderWidth: 1,
+    margin: 8,
+    borderRadius: 10,
+    flex: 1,
+    alignItems: 'center'
+  },
+  searchIcon: {
+    padding: 8,
+    paddingRight: 0
+  },
+  searchInput: {
+    height: 30,
+    padding: 8,
+    flex: 1,
+    color: 'grey'
+  },
+  emptyList: {
+    alignItems: 'center',
+    margin: 8
   }
 
 
