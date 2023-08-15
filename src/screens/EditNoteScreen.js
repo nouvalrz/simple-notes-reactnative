@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react'
 import { HeaderComponent, MainComponent } from '../components/NoteComponent'
 import realm from '../../store/realm';
 import { AddImageButtonComponent, NoteImagePreview } from '../components/NoteComponent';
+import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 
 const EditNoteScreen = (props) => {
   const { route, navigation } = props;
@@ -37,13 +38,14 @@ const EditNoteScreen = (props) => {
     } else {
       const allData = realm.objects('Note')
       allData.forEach((item) => {
-        if (item.id === id && item.note !== val) {
+        if (item.id === id && (item.note !== val || item.image !== tempImage)) {
           realm.write(() => {
+            item.image = tempImage;
             item.note = val;
             item.date = new Date().toISOString();
             navigation.navigate('NoteList')
           })
-        } else if (item.id === id && item.note === val) {
+        } else if (item.id === id && item.note === val && item.image === tempImage) {
           alert("Note tetap sama!")
         }
       })
@@ -52,8 +54,11 @@ const EditNoteScreen = (props) => {
   }
 
   const openGallery = async () => {
-    const result = await launchImageLibrary({ includeBase64: true });
-    setTempImage(result.assets[0].base64)
+    try {
+      const result = await launchImageLibrary({ includeBase64: true });
+      setTempImage(result.assets[0].base64)
+    } catch (TypeError) {
+    }
   }
 
   const deleteImage = () => {
@@ -63,12 +68,9 @@ const EditNoteScreen = (props) => {
   useEffect(() => {
     const data = realm.objects('Note').filtered(`id = ${id}`);
     setDataToUpdate(data);
+    setTempImage(data[0].image ??= '');
   }, [])
 
-  useEffect(() => {
-    console.log("state variable");
-    console.log(dataToUpdate);
-  }, [dataToUpdate])
 
   return (
     <View style={styles.mainContainer}>
@@ -80,8 +82,8 @@ const EditNoteScreen = (props) => {
           <>
             <MainComponent date={dateFormat(dataToUpdate[0].date)} value={isEdit ? newNote : dataToUpdate[0].note} onChangeText={(text) => editNote(text)} />
             {
-              dataToUpdate[0].image === '' ? <AddImageButtonComponent onPress={() => openGallery()} /> :
-                <NoteImagePreview addImageOnPress={() => openGallery()} deleteImageOnPress={() => deleteImage()} imageSource={dataToUpdate[0].image} />
+              tempImage === '' ? <AddImageButtonComponent onPress={() => openGallery()} /> :
+                <NoteImagePreview addImageOnPress={() => openGallery()} deleteImageOnPress={() => deleteImage()} imageSource={tempImage} />
             }
           </>
           : null
