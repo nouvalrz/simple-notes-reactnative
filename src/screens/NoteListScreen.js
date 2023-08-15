@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { TouchableOpacity, StyleSheet, View, Text, FlatList, TextInput }
+import { TouchableOpacity, StyleSheet, View, Text, FlatList, TextInput, Image }
   from 'react-native';
 import { CheckBox, Icon } from 'react-native-elements';
 import realm from '../../store/realm';
@@ -183,6 +183,11 @@ const NoteListScreen = (props) => {
                   <Text style={styles.noteText}>
                     {item.note}
                   </Text>
+                </View>
+                <View>
+                  {
+                    item.image !== '' ? <Image source={{ uri: `data:image/jpeg;base64,${item.image}` }} style={{ width: 80, height: 80, borderRadius: 15, marginBottom: 12 }} /> : null
+                  }
                 </View>
                 <Text style={styles.dateText}>
                   {/* {new Date(item.date).toLocaleString("en-US")} */}

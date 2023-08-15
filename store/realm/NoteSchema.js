@@ -3,7 +3,8 @@ export const NoteSchema = {
   properties: {
     id: 'int',
     note: 'string',
-    date: 'string'
+    date: 'string',
+    image: 'string'
   },
   primaryKey: 'id'
 }

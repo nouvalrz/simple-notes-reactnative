@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, Alert } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { HeaderComponent, MainComponent } from '../components/NoteComponent'
 import realm from '../../store/realm';
+import { AddImageButtonComponent, NoteImagePreview } from '../components/NoteComponent';
 
 const EditNoteScreen = (props) => {
   const { route, navigation } = props;
@@ -9,6 +10,7 @@ const EditNoteScreen = (props) => {
 
   const [dataToUpdate, setDataToUpdate] = useState([]);
   const [newNote, setNewNote] = useState("");
+  const [tempImage, setTempImage] = useState('');
   const [isEdit, setIsEdit] = useState(false);
 
   const editNote = (text) => {
@@ -49,6 +51,15 @@ const EditNoteScreen = (props) => {
     }
   }
 
+  const openGallery = async () => {
+    const result = await launchImageLibrary({ includeBase64: true });
+    setTempImage(result.assets[0].base64)
+  }
+
+  const deleteImage = () => {
+    setTempImage('')
+  }
+
   useEffect(() => {
     const data = realm.objects('Note').filtered(`id = ${id}`);
     setDataToUpdate(data);
@@ -66,7 +77,14 @@ const EditNoteScreen = (props) => {
       } />
       {
         dataToUpdate.length !== 0 ?
-          <MainComponent date={dateFormat(dataToUpdate[0].date)} value={isEdit ? newNote : dataToUpdate[0].note} onChangeText={(text) => editNote(text)} /> : null
+          <>
+            <MainComponent date={dateFormat(dataToUpdate[0].date)} value={isEdit ? newNote : dataToUpdate[0].note} onChangeText={(text) => editNote(text)} />
+            {
+              dataToUpdate[0].image === '' ? <AddImageButtonComponent onPress={() => openGallery()} /> :
+                <NoteImagePreview addImageOnPress={() => openGallery()} deleteImageOnPress={() => deleteImage()} imageSource={dataToUpdate[0].image} />
+            }
+          </>
+          : null
       }
 
     </View>
