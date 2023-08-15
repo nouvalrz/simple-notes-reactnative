@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet } from 'react-native'
+import { View, Text, StyleSheet, Alert } from 'react-native'
 import React, { useState } from 'react'
 import { TextInput, TouchableOpacity } from 'react-native-gesture-handler';
 import { Icon } from 'react-native-elements';
@@ -27,9 +27,14 @@ const AddNoteScreen = (props) => {
           date: new Date().toISOString()
         })
       })
-      alert("Catatan Berhasil Disimpan!");
-      const data = realm.objects("Note");
-      console.log(data);
+      Alert.alert('Berhasil!', 'Catatan telah tersimpan', [
+        {
+          text: "OK",
+          onPress: () => navigation.goBack()
+        }
+      ])
+      // const data = realm.objects("Note");
+      // console.log(data);
     } else {
       alert("Catatan Kosong!");
     }

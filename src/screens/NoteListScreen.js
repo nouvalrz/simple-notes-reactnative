@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { TouchableOpacity, StyleSheet, View, Text, FlatList, TextInput }
   from 'react-native';
-import { Icon } from 'react-native-elements';
+import { CheckBox, Icon } from 'react-native-elements';
 import realm from '../../store/realm';
+import { Alert } from 'react-native';
+import { useBackHandler } from '@react-native-community/hooks';
 const NoteListScreen = (props) => {
   const { navigation } = props;
 
@@ -14,6 +16,7 @@ const NoteListScreen = (props) => {
   // };
   const [data, setData] = useState([])
   const [searchText, setSearchText] = useState('');
+  const [isEdit, setIsEdit] = useState(false);
 
 
   const dateFormat = (date) => {
@@ -41,29 +44,119 @@ const NoteListScreen = (props) => {
     setSearchText(query)
   }
 
+  const setCheckBox = (id, value) => {
+    const newData = data.map((item) => {
+      if (item.id === id) {
+        item.checkedStatus = !value;
+      }
+      return item;
+    })
+
+    setData(newData);
+  }
+
+  const changeIsEdit = () => {
+    if (isEdit) {
+      const newData = data.map((item) => {
+        item.checkedStatus = false;
+        return item;
+      })
+
+      setData(newData);
+    }
+    setIsEdit(!isEdit)
+  }
+
+  const removeNotes = (checkTrue) => {
+    realm.write(() => {
+      checkTrue.forEach((val) => {
+        const data = realm.objects('Note').filtered(`id = ${val}`)
+        realm.delete(data)
+      })
+    })
+    collectNotes()
+    setIsEdit(false);
+    if (checkTrue.length !== 0) {
+    } else {
+      alert('Anda belum memilih notes!')
+    }
+
+  }
+
+  const removeAlert = () => {
+
+    const checkTrue = [];
+
+    data.forEach((item) => {
+      if (item.checkedStatus) {
+        checkTrue.push(item.id)
+      }
+    })
+
+    console.log(checkTrue)
+    if (checkTrue.length !== 0) {
+      Alert.alert('Alert', 'Apakah yakin ingin menghapus notes', [
+        {
+          text: "BATAL",
+          onPress: () => null
+        },
+        {
+          text: "YAKIN",
+          onPress: () => removeNotes(checkTrue)
+        }
+
+      ])
+    } else {
+      alert("Tidak ada catatan yang dipilih")
+    }
+
+  }
+
+  const collectNotes = () => {
+    const note = realm.objects('Note')
+    const noteByDate = note.sorted('date', true)
+    const newDataWithCheckbox = noteByDate.map((item) => {
+      item.checkedStatus = false
+      return item
+    })
+    setData(newDataWithCheckbox)
+  }
 
   useEffect(() => {
     const noteListPage = navigation.addListener('focus', () => {
-      const note = realm.objects('Note')
-      const noteByDate = note.sorted('date', true)
-      setData(noteByDate)
+      collectNotes();
       setSearchText('');
     })
     return noteListPage;
   }, [])
 
+  useBackHandler(() => {
+    if (isEdit) {
+      setIsEdit(!isEdit)
+      return true
+    }
+    return false
+  })
   return (
     <View style={styles.mainContainer}>
       <View style={styles.headerContainer}>
         <Text style={styles.headerTitle}>
           Notes
         </Text>
+        {
+          data.length !== 0 ?
+            <TouchableOpacity style={styles.editButton} onPress={() => changeIsEdit()}>
+              {
+                isEdit ? <Text style={{ color: 'grey' }}>Cancel</Text> : <Text style={{ color: 'grey' }}>Edit</Text>
+              }
+            </TouchableOpacity> : null
+        }
       </View>
       <FlatList
         contentContainerStyle={styles.flatListContainer}
         ListEmptyComponent={
           <View style={styles.emptyList}>
-            <Text style={{ color: 'grey' }}>Tidak ditemukan</Text>
+            <Text style={{ color: 'grey' }}>Tidak ada catatan</Text>
           </View>
         }
         data={data}
@@ -96,20 +189,34 @@ const NoteListScreen = (props) => {
                   {dateFormat(item.date)}
                 </Text>
               </TouchableOpacity>
+              {
+                isEdit ?
+                  <CheckBox size={20} containerStyle={styles.checkBox} onPress={() => setCheckBox(item.id, item.checkedStatus)} checked={item.checkedStatus} />
+                  : null
+              }
             </View>
           )
         }} />
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => navigation.navigate("CreateNote")}
-        >
-          <Icon name="plus" type="antdesign"
-            size={24}
-            color="white"
-          />
-        </TouchableOpacity>
-      </View>
+      {
+        !isEdit ?
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => navigation.navigate("CreateNote")}
+            >
+              <Icon name="plus" type="antdesign"
+                size={24}
+                color="white"
+              />
+            </TouchableOpacity>
+          </View> :
+          <TouchableOpacity style={styles.deleteButton} onPress={() => removeAlert()}>
+            <Icon name='delete' type='antdesign' size={20} color='white' />
+            <View style={styles.containerDeleteText}>
+              <Text style={styles.deleteText}>Delete</Text>
+            </View>
+          </TouchableOpacity>
+      }
     </View>)
 };
 
@@ -141,7 +248,7 @@ const styles = StyleSheet.create({
     borderRadius: 100
   },
   flatListContainer: {
-    padding: 8
+    padding: 8,
   },
   mainDataContainer: {
     margin: 8,
@@ -189,7 +296,28 @@ const styles = StyleSheet.create({
   },
   emptyList: {
     alignItems: 'center',
-    margin: 8
+    margin: 8,
+  },
+  checkBox: {
+    paddingHorizontal: 0
+  },
+  editButton: {
+    position: 'absolute',
+    right: 8,
+    padding: 16
+  },
+  deleteButton: {
+    backgroundColor: 'red',
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  containerDeleteText: {
+    marginLeft: 8
+  },
+  deleteText: {
+    color: 'white'
   }
 
 
